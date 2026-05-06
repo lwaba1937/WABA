@@ -13,6 +13,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
+        // Suppression de images.png qui n'existe pas dans WABA pour éviter l'échec de l'installation
         return cache.addAll(urlsToCache);
       })
   );

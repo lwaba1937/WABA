@@ -42,7 +42,7 @@ function loadTrack(index) {
     audio.load();
     
     trackTitle.textContent = track.name; 
-    trackArtist.textContent = "WABA";
+    trackArtist.textContent = "WABA (v3)";
     
     updateMediaSession();
     
