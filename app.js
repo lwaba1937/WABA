@@ -1,4 +1,4 @@
-const audio = new Audio();
+const audio = document.getElementById('mainAudio');
 const playBtn = document.getElementById('playBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
@@ -14,6 +14,9 @@ const audioUpload = document.getElementById('audioUpload');
 const adminUploadBtn = document.getElementById('adminUploadBtn');
 const playlistEl = document.getElementById('playlist');
 
+const playSvg = '<path d="M8 5v14l11-7z"/>';
+const pauseSvg = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+
 // Playlist initiale avec les musiques WABA
 let tracks = [
     { name: "L'Waba - Ana Ouiaha", url: "L'Waba - Ana Ouiaha (Video lyrics) - L'WABA.mp3", isFile: false },
@@ -22,59 +25,86 @@ let tracks = [
 let currentTrackIndex = 0;
 let isPlaying = false;
 let isLooping = false;
+let isSwapping = false;
 
 function loadTrack(index) {
     if (tracks.length === 0) return;
     const track = tracks[index];
-    audio.src = track.url;
+    
+    isSwapping = true;
+    audio.pause();
+    
+    if (audio.src !== track.url) {
+        audio.src = track.url;
+        audio.autoplay = isPlaying;
+    }
+    audio.load();
+    
     trackTitle.textContent = track.name; 
     trackArtist.textContent = "WABA";
+    
+    updateMediaSession();
     
     // Update active class in playlist
     const items = playlistEl.querySelectorAll('li');
     items.forEach((item, i) => {
         if (i === index) {
             item.classList.add('active');
-            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if(item.scrollIntoView) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
             item.classList.remove('active');
         }
     });
+
+    if (isPlaying) {
+        audio.play().catch(e => {
+            console.log("Lecture auto bloquée, tentative de secours...");
+            setTimeout(() => { if(isPlaying) audio.play(); }, 200);
+        });
+    }
 }
 
-function playSong() {
+function togglePlay() {
     if (tracks.length === 0) return;
-    isPlaying = true;
-    playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-    albumArtContainer.classList.add('playing');
-    audio.play().catch(e => console.error("Auto-play bloqué :", e));
+    if (isPlaying) {
+        audio.pause();
+    } else {
+        audio.play().catch(e => console.log("Play failed:", e));
+    }
 }
 
-function pauseSong() {
+audio.addEventListener('play', () => {
+    isSwapping = false;
+    isPlaying = true;
+    playIcon.innerHTML = pauseSvg;
+    albumArtContainer.classList.add('playing');
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+    }
+});
+
+audio.addEventListener('pause', () => {
+    if (isSwapping) return;
     isPlaying = false;
-    playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    playIcon.innerHTML = playSvg;
     albumArtContainer.classList.remove('playing');
-    audio.pause();
-}
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+    }
+});
 
 function prevSong() {
     if (tracks.length === 0) return;
-    currentTrackIndex--;
-    if (currentTrackIndex < 0) {
-        currentTrackIndex = tracks.length - 1;
-    }
+    isPlaying = true;
+    currentTrackIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
     loadTrack(currentTrackIndex);
-    if (isPlaying) playSong();
 }
 
-function nextSong() {
+function nextSong(forcePlay = false) {
     if (tracks.length === 0) return;
-    currentTrackIndex++;
-    if (currentTrackIndex > tracks.length - 1) {
-        currentTrackIndex = 0;
-    }
+    if (forcePlay) isPlaying = true;
+    currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
     loadTrack(currentTrackIndex);
-    if (isPlaying) playSong();
 }
 
 function formatTime(seconds) {
@@ -85,26 +115,14 @@ function formatTime(seconds) {
 }
 
 // Event Listeners
-playBtn.addEventListener('click', () => {
-    if (tracks.length === 0) return;
-    if (isPlaying) {
-        pauseSong();
-    } else {
-        playSong();
-    }
-});
-
+playBtn.addEventListener('click', togglePlay);
 prevBtn.addEventListener('click', prevSong);
-nextBtn.addEventListener('click', nextSong);
+nextBtn.addEventListener('click', () => nextSong(true));
 
 loopBtn.addEventListener('click', () => {
     isLooping = !isLooping;
-    audio.loop = isLooping;
-    if (isLooping) {
-        loopBtn.classList.add('active');
-    } else {
-        loopBtn.classList.remove('active');
-    }
+    loopBtn.classList.toggle('active', isLooping);
+    loopBtn.style.opacity = isLooping ? '1' : '0.5';
 });
 
 audio.addEventListener('timeupdate', () => {
@@ -119,7 +137,14 @@ audio.addEventListener('loadedmetadata', () => {
     durationEl.textContent = formatTime(audio.duration);
 });
 
-audio.addEventListener('ended', nextSong);
+audio.addEventListener('ended', () => {
+    if (isLooping) {
+        audio.currentTime = 0;
+        audio.play().catch(e => console.log(e));
+    } else {
+        nextSong(true);
+    }
+});
 
 progressBar.addEventListener('input', (e) => {
     if (tracks.length === 0) return;
@@ -141,8 +166,8 @@ function renderPlaylist() {
         
         li.addEventListener('click', () => {
             currentTrackIndex = index;
+            isPlaying = true;
             loadTrack(currentTrackIndex);
-            playSong();
         });
         
         playlistEl.appendChild(li);
@@ -150,42 +175,64 @@ function renderPlaylist() {
 }
 
 // Admin Upload Logic
-audioUpload.addEventListener('click', (e) => {
+adminUploadBtn.addEventListener('click', (e) => {
     const code = prompt("Code d'accès requis pour ajouter des musiques :");
     if (code !== "1213") {
-        e.preventDefault(); // Bloque l'ouverture de la fenêtre
-        if (code !== null) {
-            alert("Code incorrect !");
-        }
+        e.preventDefault();
+        if (code !== null) alert("Code incorrect !");
     }
 });
 
-// File Upload Handler
 audioUpload.addEventListener('change', (e) => {
     const files = e.target.files;
     if (files.length === 0) return;
 
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.type.startsWith('audio/')) {
-            const objectUrl = URL.createObjectURL(file);
-            const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
-            tracks.push({
-                name: fileName,
-                url: objectUrl,
-                isFile: true
-            });
-        }
-    }
+    const newTracks = Array.from(files).filter(file => file.type.startsWith('audio/')).map(file => ({
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        url: URL.createObjectURL(file),
+        isFile: true
+    }));
     
+    tracks = [...tracks, ...newTracks];
     renderPlaylist();
-    
-    // Si c'est le premier ajout
-    if (tracks.length === files.length && tracks.length > 0) {
-        currentTrackIndex = 0;
-        loadTrack(currentTrackIndex);
-    }
+    isPlaying = true;
+    loadTrack(tracks.length - newTracks.length);
 });
 
-// Init (laisse la playlist vide au départ pour WABA)
+function updateMediaSession() {
+    if ('mediaSession' in navigator) {
+        const track = tracks[currentTrackIndex];
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: track.name,
+            artist: "WABA Officiel",
+            album: "WABA Collection",
+            artwork: [{ src: 'bg.jpeg', sizes: '512x512', type: 'image/jpeg' }]
+        });
+        navigator.mediaSession.setActionHandler('play', () => togglePlay());
+        navigator.mediaSession.setActionHandler('pause', () => togglePlay());
+        navigator.mediaSession.setActionHandler('previoustrack', () => prevSong());
+        navigator.mediaSession.setActionHandler('nexttrack', () => nextSong(true));
+    }
+}
+
+// Init
 renderPlaylist();
+loadTrack(0);
+
+// Autoplay au chargement
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!isPlaying) {
+            audio.play().then(() => { isPlaying = true; }).catch(() => {
+                const start = () => {
+                    isPlaying = true;
+                    loadTrack(currentTrackIndex);
+                    document.removeEventListener('click', start);
+                    document.removeEventListener('touchstart', start);
+                };
+                document.addEventListener('click', start);
+                document.addEventListener('touchstart', start);
+            });
+        }
+    }, 2000);
+});

@@ -71,15 +71,21 @@
                 </div>
             </div>
         </aside>
+
+    </div>
+
+    <!-- Élément audio masqué -->
+    <audio id="mainAudio" playsinline preload="auto"></audio>
+
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(registration => {
+                navigator.serviceWorker.register('./sw.js?v=2').then(registration => {
                     console.log('SW registered');
                 });
             });
         }
     </script>
-    <script src="app.js"></script>
+    <script src="app.js?v=2"></script>
 </body>
 </html>
