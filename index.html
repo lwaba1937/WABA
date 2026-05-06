@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WABA - Le Site</title>
+    <title>WABA</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Graduate&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
@@ -19,6 +19,7 @@
             <header class="site-header">
                 <div class="logo-image-main">
                     <img src="bg.jpeg" alt="WABA Logo" class="logo-img">
+                    <div style="color: white; font-size: 12px; opacity: 0.6; text-align: center; margin-top: 5px;">Version V3</div>
                 </div>
             </header>
 
@@ -84,7 +85,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=3').then(registration => {
+                navigator.serviceWorker.register('./sw_v3.js?v=3').then(registration => {
                     console.log('SW registered');
                 });
             });
