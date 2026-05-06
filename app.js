@@ -20,7 +20,8 @@ const pauseSvg = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
 // Playlist initiale avec les musiques WABA
 let tracks = [
     { name: "L'Waba - Ana Ouiaha", url: "L'Waba - Ana Ouiaha (Video lyrics) - L'WABA.mp3", isFile: false },
-    { name: "L'Waba - Derria Nabta", url: "L'Waba - Derria Nabta (Video lyrics) - L'WABA.mp3", isFile: false }
+    { name: "L'Waba - Derria Nabta", url: "L'Waba - Derria Nabta (Video lyrics) - L'WABA.mp3", isFile: false },
+    { name: "EL WABA - HOMOLOGUE", url: "EL WABA - HOMOLOGUE - Usma Alger.mp3", isFile: false }
 ];
 let currentTrackIndex = 0;
 let isPlaying = false;
